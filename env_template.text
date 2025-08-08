@@ -1,0 +1,48 @@
+# =========================================
+# .env - YTX InitDb Environment Configuration
+# =========================================
+# Rename this file to ".env" and place it in your project root.
+# This file is used when initializing databases and creating roles.
+# Role names must be consistent with ytx-server .env to avoid mismatches.
+# =========================================
+
+# -----------------------------------------
+# Vault & PostgreSQL Connection
+# -----------------------------------------
+POSTGRES_TOKEN=                        # Vault token for fetching role passwords (optional)
+POSTGRES_URL=postgres://postgres@localhost:5432/postgres
+VAULT_ADDR=http://127.0.0.1:8200        # Vault server address
+
+# -----------------------------------------
+# Database Names
+# -----------------------------------------
+AUTH_DB=ytx_auth                        # Authentication database name
+MAIN_DB=ytx_main                        # Main application database name
+MAIN_WORKSPACE=ytx_workspace            # Default workspace identifier for new users
+
+# -----------------------------------------
+# PostgreSQL Superuser
+# -----------------------------------------
+POSTGRES_ROLE=postgres                  # Global PostgreSQL superuser role name
+POSTGRES_PASSWORD=                      # Superuser password (used if Vault token is empty)
+
+# -----------------------------------------
+# AUTH_DB Roles
+# -----------------------------------------
+AUTH_READWRITE_ROLE=ytx_auth_readwrite   # Read/write role for AUTH_DB
+AUTH_READWRITE_PASSWORD=                 # Password for AUTH_DB read/write role
+
+# -----------------------------------------
+# MAIN_DB Roles
+# -----------------------------------------
+MAIN_READWRITE_ROLE=ytx_main_readwrite   # Default role for new registrations
+MAIN_READWRITE_PASSWORD=                 # Password for MAIN_DB read/write role
+MAIN_READONLY_ROLE=ytx_main_readonly     # Read-only role for MAIN_DB
+MAIN_READONLY_PASSWORD=                  # Password for MAIN_DB read-only role
+
+# -----------------------------------------
+# Notes:
+# - Only *_PASSWORD values can differ between environments
+# - *_ROLE values must match ytx-server .env
+# - Vault takes priority over .env for password values if POSTGRES_TOKEN is set
+# -----------------------------------------
