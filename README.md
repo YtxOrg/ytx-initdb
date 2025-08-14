@@ -2,56 +2,124 @@
 
 ## Overview
 
-YTX InitDB is the database initialization tool for the YTX ERP system. It automates the creation of PostgreSQL databases and roles, configures database permissions, and initializes necessary schema objects.
-It supports securely fetching database passwords dynamically from Vault to ensure secret management best practices.
+**YTX InitDB** is a database initialization tool for the YTX ERP system. It automates the creation of PostgreSQL databases and roles, configures permissions, and initializes schemas. It supports secure password management by dynamically fetching secrets from Vault or using environment variables for local/testing scenarios.
+
+---
 
 ## Features
 
-- Automatically create PostgreSQL databases (e.g., `ytx_auth`, `ytx_main`)
-- Automatically create PostgreSQL roles (`ytx_admin`, `ytx_readonly`, `ytx_readwrite`, etc.)
-- Supports two password sourcing methods: environment variables or Vault secrets
-- Initializes database schema and essential data
-- Configures granular role permissions for secure data access
-- Detailed error handling and logging for easier troubleshooting
+- Automated creation of PostgreSQL databases (e.g., `ytx_auth`, `ytx_main`)
+- Automated creation of roles (`ytx_auth_readwrite`, `ytx_main_readwrite`, `ytx_main_readonly`)
+- Two password sourcing methods: Vault secrets (recommended) or environment variables (fallback)
+- Schema and essential data initialization
+- Granular role permissions for secure data access
+- Detailed error handling and logging
+
+---
 
 ## Technology Stack
 
-- Developed in Rust
-- Uses `postgres` crate for PostgreSQL connectivity and queries
-- Uses `reqwest` crate to interact with Vault HTTP API for secret retrieval
-- Uses `dotenvy` crate for environment variable loading
-- Vault secret data formatted as JSON for flexible key-value storage
+- **Language:** Rust
+- **Database:** PostgreSQL (`postgres` crate)
+- **Secret Management:** Vault (`reqwest` crate for HTTP API)
+- **Config:** `.env` file loaded via `dotenvy`
+- **Vault:** KV v2 secrets engine, JSON-formatted secret data
 
-## Password Sourcing Priority
+---
 
-- If a valid `POSTGRES_TOKEN` (Vault token) is provided, **all passwords will be fetched dynamically from Vault**, overriding any password values set in environment variables.
-- If no `POSTGRES_TOKEN` is provided or the token is invalid, the system will **fall back to using the passwords directly set in environment variables**.
-- This design offers flexibility to use Vault for secure centralized management in production, or environment variables for simple local/testing scenarios.
+## Password Management & Security
 
-## Configuration
+- **All required PostgreSQL role passwords must be pre-set** in Vault or `.env` before initialization.
+- **Priority:**
+  1. If a valid `POSTGRES_TOKEN` (Vault token) is provided, all passwords are fetched from Vault (overriding environment variables).
+  2. If no valid token, passwords are read from environment variables.
+- **Vault secret paths:**
+  - Superuser: `secret/data/postgres/postgres`
+  - YTX roles: `secret/data/postgres/ytx`
+- **Best Practices:**
+  - Never hardcode secrets in code or public files.
+  - Restrict `.env` permissions: `chmod 600 .env`
+  - Vault tokens should be short-lived and renewable.
+  - Principle of least privilege for all roles.
 
-- The `.env` file holds fallback passwords and basic configuration parameters.
-- Vault address and authentication tokens are provided via environment variables.
-- Database names and PostgreSQL role names can be customized to suit your environment.
-- Default PostgreSQL roles are: `ytx_admin`, `ytx_readonly`, `ytx_readwrite`.
-- Vault configuration details:
-  - PostgreSQL superuser password is stored at: `secret/data/postgres/postgres`.
-  - Passwords for YTX roles are stored under: `secret/data/postgres/ytx`, with keys matching the role names.
-  - Vault uses the KV version 2 secrets engine, ensure your Vault instance is configured accordingly.
-  - Password keys stored in Vault **must exactly match** the PostgreSQL role names configured in your environment.
-- Each workspace should be uniquely associated with one main database to ensure data isolation and integrity.
+---
 
-## Usage Steps
+## Quick Start
 
-1. Prepare PostgreSQL server instance
-2. Set up Vault service, upload passwords and policies accordingly
-3. Configure `.env` file or environment variables with Vault address, tokens, and DB connection info
-4. Run `ytx-initdb` to initialize databases, roles, permissions, and schemas automatically
-5. Verify successful creation of databases and roles with correct permissions
+### 1. Run PostgreSQL & Vault with Docker
 
-## Security Considerations
+A preconfigured `docker-compose.yml` is provided for local development/testing.
 
-- All passwords are centrally managed in Vault to avoid hardcoding secrets.
-- Vault tokens can be short-lived and support renewal for improved security.
-- Principle of least privilege is followed for role permissions.
-- **Ensure that the `.env` file containing fallback passwords and tokens has strict file permissions (e.g., `chmod 600 .env`) to prevent unauthorized access and potential secret leakage.**
+- **PostgreSQL**: persistent storage, configurable password
+- **Vault**: local file storage, UI enabled, port mapping
+- **Important:** Always wrap `POSTGRES_PASSWORD` in double quotes (`""`) in Docker Compose.
+
+```bash
+docker compose -p ytx up -d
+```
+
+---
+
+### 2. Configure Environment & Vault
+
+- Copy the environment template:
+
+  ```shell
+  cp env_template.text .env
+  ```
+
+- Store PostgreSQL superuser password in Vault:
+
+  ```shell
+  vault kv put secret/postgres/postgres postgres=POSTGRES_PASSWORD
+  ```
+
+- Generate and store random passwords for YTX roles in Vault:
+
+  ```shell
+  vault kv put secret/postgres/ytx \
+    ytx_auth_readwrite=$(openssl rand -base64 16) \
+    ytx_main_readwrite=$(openssl rand -base64 16) \
+    ytx_main_readonly=$(openssl rand -base64 16)
+  ```
+
+---
+
+### 3. Initialize Database
+
+```shell
+git clone https://github.com/YtxErp/ytx-initdb.git
+cd ytx-initdb
+
+cargo run --release
+```
+
+---
+
+### 4. Verify
+
+```shell
+psql -h localhost -U <postgres_user> -d <database_name>
+# Example:
+psql -h localhost -U postgres -d ytx_auth
+psql -h localhost -U postgres -d ytx_main
+```
+
+---
+
+## Configuration Reference
+
+- `.env` holds fallback passwords and config parameters.
+- Vault address and tokens are provided via environment variables.
+- Database and role names are customizable.
+- Each workspace should have a unique main database for data isolation.
+
+---
+
+## Support
+
+If YTX has been helpful to you, I’d be truly grateful for your support. Your encouragement helps me keep improving and creating!
+
+Also may the force be with you.
+
+[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" width="160" height="40">](https://buymeacoffee.com/ytx.cash)
