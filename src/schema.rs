@@ -17,13 +17,14 @@ pub fn ytx_user() -> String {
 pub fn ytx_role_workspace() -> String {
     r#"
     CREATE TABLE IF NOT EXISTS ytx_role_workspace (
-        user_id          UUID NOT NULL,                    -- Matches id in ytx_user (manually managed)
-        role             TEXT NOT NULL,
-        workspace        TEXT NOT NULL,
-        register_time    TIMESTAMPTZ(0),
-        updated_time     TIMESTAMPTZ(0),
-        updated_by       UUID,
-        is_valid         BOOLEAN DEFAULT FALSE,
+        user_id               UUID NOT NULL,                    -- Matches id in ytx_user (manually managed)
+        role                  TEXT NOT NULL,
+        workspace             TEXT NOT NULL,
+        is_access_enabled     BOOLEAN DEFAULT FALSE,            -- Access to workspace
+        register_time         TIMESTAMPTZ(0),
+        updated_time          TIMESTAMPTZ(0),
+        updated_by            UUID,
+        is_valid              BOOLEAN DEFAULT TRUE,
         PRIMARY KEY (user_id, workspace)
     );
     "#
