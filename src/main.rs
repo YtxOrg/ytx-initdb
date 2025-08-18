@@ -10,6 +10,7 @@ use reqwest::blocking::Client;
 use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
 use serde_json::Value;
 use std::env::var;
+use unicode_xid::UnicodeXID;
 
 fn main() -> Result<()> {
     dotenv().ok();
@@ -22,7 +23,7 @@ fn main() -> Result<()> {
     // Database names
     let auth_db = read_value_with_default("AUTH_DB", "ytx_auth")?;
     let main_db = read_value_with_default("MAIN_DB", "ytx_main")?;
-    let main_workspace = read_value_with_default("MAIN_WORKSPACE", "ytx_workspace")?;
+    let main_workspace = read_workspace_with_default("MAIN_WORKSPACE", "ytx_workspace")?;
 
     // Roles
     let postgres_role = read_value_with_default("POSTGRES_ROLE", "postgres")?;
@@ -157,6 +158,40 @@ fn read_value_with_default(key: &str, default: &str) -> Result<String> {
     {
         bail!(
             "Value for '{}' can only contain lowercase letters, digits, and underscore",
+            key
+        );
+    }
+
+    Ok(val)
+}
+
+fn read_workspace_with_default(key: &str, default: &str) -> Result<String> {
+    let val = var(key).unwrap_or(default.to_string());
+
+    if val.is_empty() {
+        bail!("Value for '{}' cannot be empty", key);
+    }
+
+    if val.len() > 63 {
+        bail!("Value for '{}' cannot be longer than 63 characters", key);
+    }
+
+    let mut chars = val.chars();
+    let first = chars.next().unwrap();
+
+    if !UnicodeXID::is_xid_start(first) {
+        bail!(
+            "Value for '{}' must start with a letter (Unicode allowed)",
+            key
+        );
+    }
+
+    if !val
+        .chars()
+        .all(|c| UnicodeXID::is_xid_continue(c) || c == '_')
+    {
+        bail!(
+            "Value for '{}' can only contain letters, digits, or underscore",
             key
         );
     }
